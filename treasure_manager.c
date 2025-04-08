@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h> 
-
+#include <time.h>
 typedef struct {
     int id;
     struct {
@@ -115,26 +115,6 @@ void add(const char *hunt_id) {
 }
 
 
-long get_file_size(const char *filename) {
-    // deschidem fisierul în modul doar citire
-    int fd = open(filename, O_RDONLY); 
-    if (fd == -1) {
-        perror("Eroare la deschiderea fișierului");
-        return -1;
-    }
-
-    // folosim lseek pentru a obtine dimensiunea fisierului
-    off_t size = lseek(fd, 0, SEEK_END);
-    if (size == -1) {
-        perror("Eroare la obtinerea dimensiunii fisierului");
-        close(fd);
-        return -1;
-    }
-
-    close(fd); // inchidem fisierul
-    return size;
-}
-
 
 void list(const char *hunt_id) {
     // Cautam directorul vanatorii daca ca parametru
@@ -151,9 +131,20 @@ void list(const char *hunt_id) {
     char filename[256];
     snprintf(filename, sizeof(filename), "%s/comoara.txt", hunt_id);
 
-    long size=get_file_size(filename);
+    // folosim stat pentru a obtine dimensiunea si timpul ultimei modificari
+    struct stat st;
+    if (stat(filename, &st) == -1) {
+        perror("Eroare la obtinerea informatiilor despre fisier");
+        closedir(dir);
+        return;
+    }
+
     // afisam dimensiunea fisierului
-    printf("Dimensiunea totală a fișierului de comori: %ld bytes\n",size);
+    printf("Dimensiunea totală a fișierului de comori: %ld bytes\n", st.st_size);
+
+    // afisam timpul ultimei modificari
+    printf("Ultima modificare: %s", ctime(&st.st_mtime)); 
+
 
     // deschidem fisierul de comori
     int in = open(filename, O_RDONLY);
