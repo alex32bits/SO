@@ -18,13 +18,13 @@ typedef struct {
 } treasure;
 
 //salvam intr-un fisier din direcotr actiunile
-void log_action(const char *hunt_id, const char *action) 
+void log_action(const char *hunt_id,const char *action) 
 {
     char log_filename[256];
-    snprintf(log_filename, sizeof(log_filename), "%s/logged_hunt", hunt_id);
+    snprintf(log_filename, sizeof(log_filename),"%s/logged_hunt",hunt_id);
     
     // deschidem fisierul de log
-    int log_file = open(log_filename, O_WRONLY | O_APPEND |O_CREAT,0644);
+    int log_file=open(log_filename, O_WRONLY| O_APPEND|O_CREAT,0644);
     if (log_file==-1) {
         perror("Eroare la deschiderea fisierului de log");
         exit(-1);
@@ -52,7 +52,7 @@ void log_action(const char *hunt_id, const char *action)
 int exista(const char *hunt_id,int id)
 {
     char filename[256];
-    snprintf(filename,sizeof(filename),"%s/comoara.txt", hunt_id);
+    snprintf(filename,sizeof(filename),"%s/comoara.txt",hunt_id);
 
     int in=open(filename, O_RDONLY);
     if (in==-1) {
@@ -87,28 +87,28 @@ void add(const char *hunt_id)
     // cautam un director cu numele hunt_id
     int hunt_exists=0;
     struct dirent *entry;
-    while ((entry=readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name,hunt_id) == 0) {
+    while ((entry=readdir(dir))!= NULL) {
+        if (strcmp(entry->d_name,hunt_id)==0) {
             hunt_exists = 1;
             break;
         }
     }
     closedir(dir);
 
-    // daca directorul nu exista, îl creăm
+    // daca directorul nu exista, il cream
     if (hunt_exists==0) {
         if (mkdir(hunt_id,0755)==-1) {
             perror("Eroare la crearea directorului");
             exit(-1);
         }
-        printf("Directorul %s a fost creat cu succes.\n", hunt_id);
+        printf("Directorul %s a fost creat cu succes.\n",hunt_id);
     } else {
         printf("Directorul %s exista deja.\n", hunt_id);
     }
 
     // cautam sau cream fisierul de comori
     char filename[256];
-    snprintf(filename,sizeof(filename),"%s/comoara.txt", hunt_id);
+    snprintf(filename,sizeof(filename),"%s/comoara.txt",hunt_id);
 
     int in=open(filename, O_RDWR| O_CREAT | O_APPEND, 0644);
     if (in==-1) {
@@ -134,14 +134,13 @@ void add(const char *hunt_id)
     printf("Introduceti longitudine: ");
     scanf("%f",&a.coordonate.lon);
 
-    printf("Introduceti valoarea comorii: ");
-    scanf("%d",&a.value);
-
     getchar();
     printf("Introduceti indiciul: ");
     fgets(a.clue, sizeof(a.clue),stdin);
     a.clue[strcspn(a.clue,"\n")] = 0;
 
+    printf("Introduceti valoarea comorii: ");
+    scanf("%d",&a.value);
 
     // scriem comoara in fisier
     if (write(in,&a,sizeof(a))==-1) {
@@ -154,11 +153,9 @@ void add(const char *hunt_id)
 
     // memoram operațiunea
     char action[256];
-    snprintf(action, sizeof(action),"Treasure added: ID=%d, Value=%d", a.id, a.value);//scriem in action ceea ce am facut pt a putea adauga in log
-    log_action(hunt_id, action);
+    snprintf(action, sizeof(action),"Treasure added: ID=%d, Value=%d",a.id,a.value);//scriem in action ceea ce am facut pt a putea adauga in log
+    log_action(hunt_id,action);
 }
-
-
 
 void list(const char *hunt_id) 
 {
@@ -179,7 +176,7 @@ void list(const char *hunt_id)
     // folosim stat pentru a obtine dimensiunea si timpul ultimei modificari
     //lab 4
     struct stat st;
-    if (stat(filename, &st) == -1) {
+    if (stat(filename,&st)==-1) {
         perror("Eroare la obtinerea informatiilor despre fisier");
         closedir(dir);
         exit(-1);
@@ -193,8 +190,9 @@ void list(const char *hunt_id)
 
 
     // deschidem fisierul de comori
-    int in = open(filename, O_RDONLY);
-    if (in == -1) {
+    int in=open(filename, O_RDONLY);
+    if (in==-1) 
+    {
         perror("Eroare la deschiderea fisierului de comori");
         closedir(dir);
         exit(-1);
@@ -206,13 +204,13 @@ void list(const char *hunt_id)
     // citim si afisamm fiecare comoara
     //lab 4
     printf("Comori\n");
-    while((bytesRead = read(in,&a,sizeof(a))) > 0) {
+    while((bytesRead=read(in,&a,sizeof(a)))>0) 
+    {
         if(bytesRead<sizeof(a)) {
             perror("Citire incompleta a datelor pentru comoara");
             break;
         }
-
-        printf("ID: %d\n", a.id);
+        printf("ID: %d\n",a.id);
         printf("Latitudine: %.2f\n",a.coordonate.lat);
         printf("Longitudine: %.2f\n",a.coordonate.lon);
         printf("Indiciul: %s\n",a.clue);
@@ -224,23 +222,22 @@ void list(const char *hunt_id)
     closedir(dir);
 }
 
-
 void view(const char *hunt_id,int id) 
 {
     // cautam directorul vanatorii
-    DIR *dir = opendir(hunt_id);
-    if (dir == NULL) {
+    DIR *dir=opendir(hunt_id);
+    if (dir==NULL) {
         perror("Nu s-a putut deschide directorul vanatorii");
         exit(-1);
     }
 
     // cautam fisierul de comori
     char filename[256];
-    snprintf(filename,sizeof(filename),"%s/comoara.txt", hunt_id);
+    snprintf(filename,sizeof(filename),"%s/comoara.txt",hunt_id);
 
     // citim comorile din fisierul "comoara.txt"
-    int in=open(filename, O_RDONLY);
-    if (in == -1) {
+    int in=open(filename,O_RDONLY);
+    if (in==-1) {
         perror("Eroare la deschiderea fisierului de comori");
         closedir(dir);
         exit(-1);
@@ -250,18 +247,18 @@ void view(const char *hunt_id,int id)
     ssize_t bytesRead;
     int ok=0;
     // citim si afisam comoara dorita
-    while ((bytesRead=read(in, &a, sizeof(a))) > 0) {
+    while ((bytesRead=read(in,&a,sizeof(a)))> 0) {
         if (bytesRead<sizeof(a)) {
             perror("Citire incompleta a datelor pentru comoara");
             break;
         }
     if(a.id==id)
     {
-        printf("ID: %d\n", a.id);
-        printf("Latitudine: %.2f\n", a.coordonate.lat);
-        printf("Longitudine: %.2f\n", a.coordonate.lon);
-        printf("Indiciu: %s\n", a.clue);
-        printf("Valoare: %d\n", a.value);
+        printf("ID: %d\n",a.id);
+        printf("Latitudine: %.2f\n",a.coordonate.lat);
+        printf("Longitudine: %.2f\n",a.coordonate.lon);
+        printf("Indiciu: %s\n",a.clue);
+        printf("Valoare: %d\n",a.value);
         printf("----------------------\n");
         ok=1;
     }
@@ -273,20 +270,20 @@ void view(const char *hunt_id,int id)
     closedir(dir);
 }
 
-void remove_treasure(const char *hunt_id, int id) 
+void remove_treasure(const char *hunt_id,int id) 
 {
     char filename[256];
-    snprintf(filename, sizeof(filename), "%s/comoara.txt", hunt_id);
+    snprintf(filename,sizeof(filename),"%s/comoara.txt", hunt_id);
 
     // deschidem fisierul de comori pentru citire
-    int in=open(filename, O_RDONLY);
+    int in=open(filename,O_RDONLY);
     if (in==-1) {
         perror("Eroare la deschiderea fisierului de comori");
         exit(-1);
     }
 
     // cream un fisier temporar pentru a scrie comorile care nu trebuie sterse
-    int temp_fis = open("temp.dat", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int temp_fis=open("temp.dat",O_WRONLY| O_CREAT| O_TRUNC,0644);
     if (temp_fis==-1) {
         perror("Eroare la deschiderea fisierului temporar");
         close(in);
@@ -298,7 +295,7 @@ void remove_treasure(const char *hunt_id, int id)
     int found=0;
 
     // citim fisierul si scriem in fisierul temporar doar comorile care nu trebuie sterse
-    while ((bytesRead=read(in, &a, sizeof(a)))> 0) {
+    while ((bytesRead=read(in,&a,sizeof(a)))> 0) {
         if (bytesRead<sizeof(a)) {
             fprintf(stderr, "Citire incompleta a datelor pentru comoara\n");
             break;
@@ -315,7 +312,7 @@ void remove_treasure(const char *hunt_id, int id)
         } 
         else 
         {
-            found = 1;  // am gasit comoara de sters
+            found=1;  // am gasit comoara de sters
         }
     }
 
@@ -325,27 +322,27 @@ void remove_treasure(const char *hunt_id, int id)
     // daca am gasit comoara de sters,inlocuim fisierul cu comori cu actualul
     if (found) 
     {
-        if (rename("temp.dat", filename) == -1) {
+        if (rename("temp.dat",filename)==-1) {
             perror("Eroare la inlocuirea fisierului de comori");
             exit(-1);
         }
-        printf("Comoara cu ID-ul %d a fost stearsa.\n", id);
+        printf("Comoara cu ID-ul %d a fost stearsa.\n",id);
         // adauga operatiunea
         char action[256];
-        snprintf(action, sizeof(action), "Treasure removed: ID=%d", id);
+        snprintf(action, sizeof(action), "Treasure removed: ID=%d",id);
         log_action(hunt_id,action);
     } 
     else 
     {
         // daca nu am gasit comoara, stergem fisierul temporar
-        printf("Nu s-a gasit comoara cu ID-ul %d.\n", id);
+        printf("Nu s-a gasit comoara cu ID-ul %d.\n",id);
         remove("temp.dat");
     }
 }
 
 void remove_files(const char *hunt_id) 
 {
-    DIR *dir = opendir(hunt_id);
+    DIR *dir=opendir(hunt_id);
     if (dir==NULL) {
         perror("Nu s-a putut deschide directorul");
         exit(-1);
@@ -357,11 +354,11 @@ void remove_files(const char *hunt_id)
     // parcurgem toate fisierele din director
     while ((entry=readdir(dir))!=NULL) {
         
-        if (strcmp(entry->d_name,".") == 0 || strcmp(entry->d_name,"..") == 0)
+        if (strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0)
             continue;
 
         // Construim calea completa catre fisier/subdirector
-        snprintf(files, sizeof(files), "%s/%s",hunt_id,entry->d_name);
+        snprintf(files, sizeof(files),"%s/%s",hunt_id,entry->d_name);
         if(remove(files)==-1)
         {
             perror("Eroare la stergera fisirului");
@@ -375,7 +372,7 @@ void remove_files(const char *hunt_id)
 void remove_hunt(const char *hunt_id) 
 {
     // Verificam daca directorul exista
-    DIR *dir = opendir(hunt_id);
+    DIR *dir=opendir(hunt_id);
     if (dir==NULL) {
         printf("Directorul %s nu exista sau nu poate fi deschis.\n", hunt_id);
         exit(-1);
@@ -393,7 +390,7 @@ void remove_hunt(const char *hunt_id)
     }
 }
 
-int main(int argc, char **argv) {
+int main(int argc,char **argv) {
    
     if(argc<3) 
     {   
@@ -401,33 +398,33 @@ int main(int argc, char **argv) {
         exit(-1);
     }
     
-    if (strcmp(argv[1], "--add") == 0) 
+    if (strcmp(argv[1],"--add")==0) 
     {
         add(argv[2]);
     } 
-    else if (strcmp(argv[1], "--list") == 0) 
+    else if (strcmp(argv[1],"--list")==0) 
     {
         list(argv[2]);
-        // Afisez continutul fisierului din directorul cu numele care e dupa list
+        // Afisez continutul fisierului si date despre fisierul din diretorul cu numele argv[2]
     } 
-    else if (strcmp(argv[1], "--view") == 0) 
+    else if (strcmp(argv[1], "--view")==0) 
     {
-        // Caut in fisierul cu id=argv[2] din directorul argv[2] si afisez detaliile
+        // Caut in fisierul de comori,comoara cu id=argv[2] din directorul argv[2] si afisez detaliile
         view(argv[2],atoi(argv[3]));
     } 
-    else if (strcmp(argv[1], "--remove_treasure") == 0) 
+    else if (strcmp(argv[1],"--remove_treasure")==0) 
     {
-        // Caut in fisierul cu id=argv[2] din directorul argv[2] si sterg datele acestei comori
+        // Caut in id-ul din argv[3] din fisierul de comori in directorul numele argv2 si sterg datele acestei comori
         remove_treasure(argv[2],atoi(argv[3]));
     } 
-    else if (strcmp(argv[1], "--remove_hunt") == 0) 
+    else if (strcmp(argv[1],"--remove_hunt")==0) 
     {
         remove_hunt(argv[2]);
-        // Caut in fisierul cu id=argv[2] din directorul argv[2] si sterg o vanatoare
+        // Caut in direcotul curent directorul cu numele=argv[2] si il sterg
     } else {
-        fprintf(stderr, "Comanda necunoscuta: %s\n", argv[1]);
+        printf("Comanda necunoscuta:%s\n",argv[1]);
     }
     
     return 0;
-}
 
+}
