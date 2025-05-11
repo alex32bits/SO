@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <sys/stat.h> 
 #include <time.h>
+#include <signal.h>
+
+const char* command_file;
 
 typedef struct {
     int id;
@@ -163,7 +166,7 @@ void list(const char *hunt_id)
     DIR *dir=opendir(hunt_id);
     if (dir==NULL) {
         perror("Nu s-a putut deschide directorul vanatorii");
-        exit(-1);
+        return;
     }
 
     // afisam numele vanatorii
@@ -228,7 +231,7 @@ void view(const char *hunt_id,int id)
     DIR *dir=opendir(hunt_id);
     if (dir==NULL) {
         perror("Nu s-a putut deschide directorul vanatorii");
-        exit(-1);
+        return;
     }
 
     // cautam fisierul de comori
@@ -390,14 +393,176 @@ void remove_hunt(const char *hunt_id)
     }
 }
 
-int main(int argc,char **argv) {
+
+//monitor
+void list_hunts() {
+    // Verificam exista directorul curesnt
+    DIR *dir=opendir(".");
+    if (dir==NULL) {
+        printf("Directorul curent nu exista\n");
+        return;
+    }
+
+    struct dirent *entry;
+    char cale[512];
+
+    // Parcurgem toate fis din director
+    while ((entry=readdir(dir))!= NULL) {
+        // Verificam daca numele directorului incepe cu "hunt"  asa am eu numele vanatorilor
+        if (strncmp(entry->d_name,"hunt",4)==0) {
+            //Construim calea catre fisierul "comoara.txt"
+            snprintf(cale,sizeof(cale),"%s/comoara.txt",entry->d_name);
+
+            int in=open(cale,O_RDONLY);
+            if (in==-1) {
+                perror("Eroare la deschiderea fisierului de comori");
+                closedir(dir);
+                exit(-1);
+            }
+
+            treasure a;
+            ssize_t bytesRead;
+            int ct=0;
+
+            //Citim comorile 
+            while ((bytesRead=read(in, &a, sizeof(a))) > 0) {
+                if (bytesRead<sizeof(a)) {
+                    perror("Citire incompleta a datelor pentru comoara");
+                    break;
+                }
+                ct++;  //Crestem nr de comori
+            }
+
+            printf("Vanatoare: %s | Numar comori: %d\n",entry->d_name,ct);
+            close(in);  //Inchidem fisierul de comori
+        }
+    }
+
+    closedir(dir);  //Inchidem directorul curent
+}
+
+void handle_signal(int sig) {
+    if (sig==SIGUSR1) {
+        FILE* file=fopen(command_file,"r");
+    if (file==NULL) {
+        perror("Eroare la deschiderea fisierului de comenzi");
+        return;
+    }
+
+    char cmd[256];
+    char arg1[256];
+    int id;
+
+    while (fscanf(file,"%s",cmd)!=EOF) {
+        if (strcmp(cmd,"list")==0) {
+            fscanf(file,"%s",arg1);  //Citim argumentul pentru list 
+            list(arg1);
+        } else if (strcmp(cmd,"view")==0) {
+            fscanf(file,"%s %d",arg1,&id);  //Citim argumentele pentru view
+            view(arg1,id);
+        } else if (strcmp(cmd,"list_hunts")==0) {
+            list_hunts();
+        } else {
+            printf("Comanda necunoscuta: %s\n",cmd);
+        }
+    }
+    remove(command_file);//Sterg fisierul auxiliar
+    fclose(file);
+    }
+
+    if(sig==SIGUSR2)
+    {
+        printf("[Monitor] Se inchide in 2 sec\n");
+        usleep(2000000);
+        exit(0);
+    }
+}
+
+
+//Phase 3
+
+void scor(const char *hunt_id)
+{
+    // cautam directorul vanatorii
+    DIR *dir=opendir(hunt_id);
+    if (dir==NULL) {
+        perror("Nu s-a putut deschide directorul vanatorii");
+        return;
+    }
+
+    // cautam fisierul de comori
+    char filename[256];
+    snprintf(filename,sizeof(filename),"%s/comoara.txt",hunt_id);
+
+    // citim comorile din fisierul "comoara.txt"
+    int in=open(filename,O_RDONLY);
+    if (in==-1) {
+        perror("Eroare la deschiderea fisierului de comori");
+        closedir(dir);
+        exit(-1);
+    }
+
+    treasure a;
+    ssize_t bytesRead;
+
+    // citim si afisam comoara dorita
+    while ((bytesRead=read(in,&a,sizeof(a)))> 0) {
+        if (bytesRead<sizeof(a)) {
+            perror("Citire incompleta a datelor pentru comoara");
+            break;
+        }
    
-    if(argc<3) 
+        printf("ID: %d\n",a.id);
+        printf("Scor: %d\n",a.value);
+        printf("----------------------\n");
+        
+    }
+
+    close(in);
+    closedir(dir);
+
+}
+int main(int argc,char **argv) {
+
+
+    if(argc<2) 
     {   
         printf("argumente invalide\n");
         exit(-1);
     }
-    
+
+    if (strcmp(argv[1],"--monitor")==0) {
+        if (argc<3) {
+            printf("Lipseste fisierul de comenzi.\n");
+            exit(-1);
+        }
+
+        command_file=argv[2];
+        //Handler pentru semnalul SIGUSR1 folosind sigaction
+        struct sigaction sa;
+        memset(&sa,0x00, sizeof(struct sigaction));
+        sa.sa_handler=handle_signal;
+
+        // Setam SIGUSR1
+        if (sigaction(SIGUSR1,&sa,NULL)<0) {
+            perror("Eroare SIGUSR1 handler");
+            exit(1);
+        }
+
+        // Setam SIGUSR2 
+        if (sigaction(SIGUSR2,&sa,NULL)<0) {
+            perror("Eroare SIGUSR2 handler");
+            exit(1);
+        }
+
+        printf("Monitorul este in functiune. Astept semnale...\n");
+
+        // Rulam intr-o bucla infinita asteptand semanele
+        while (1) {
+            pause();  
+        }
+    } 
+
     if (strcmp(argv[1],"--add")==0) 
     {
         add(argv[2]);
@@ -407,7 +572,7 @@ int main(int argc,char **argv) {
         list(argv[2]);
         // Afisez continutul fisierului si date despre fisierul din diretorul cu numele argv[2]
     } 
-    else if (strcmp(argv[1], "--view")==0) 
+    else if (strcmp(argv[1],"--view")==0) 
     {
         // Caut in fisierul de comori,comoara cu id=argv[2] din directorul argv[2] si afisez detaliile
         view(argv[2],atoi(argv[3]));
@@ -421,10 +586,17 @@ int main(int argc,char **argv) {
     {
         remove_hunt(argv[2]);
         // Caut in direcotul curent directorul cu numele=argv[2] si il sterg
-    } else {
+    } else if (strcmp(argv[1], "--list_hunts")==0) {
+        list_hunts();
+    }
+    else if (strcmp(argv[1], "--scor")==0) {
+        scor(argv[2]);
+    }
+    else{
         printf("Comanda necunoscuta:%s\n",argv[1]);
     }
     
+
     return 0;
 
 }
